@@ -1,0 +1,245 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Thu May 21 23:56:01 2026
+
+@author: Eric
+"""
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Writing XP Game</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: system-ui, sans-serif;
+      background: linear-gradient(135deg, #1f2937, #111827);
+      color: white;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 24px;
+    }
+
+    .game {
+      width: min(900px, 100%);
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 24px;
+      padding: 28px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 2rem;
+    }
+
+    .subtitle {
+      margin-bottom: 22px;
+      color: #cbd5e1;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+
+    .stat {
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 16px;
+      padding: 16px;
+      text-align: center;
+    }
+
+    .stat strong {
+      display: block;
+      font-size: 1.6rem;
+      margin-top: 4px;
+    }
+
+    .bar-wrap {
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 999px;
+      height: 22px;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+
+    .bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #22c55e, #84cc16);
+      transition: width 0.2s ease;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 260px;
+      resize: vertical;
+      border: none;
+      outline: none;
+      border-radius: 18px;
+      padding: 18px;
+      font-size: 1rem;
+      box-sizing: border-box;
+      background: #f8fafc;
+      color: #111827;
+      line-height: 1.6;
+    }
+
+    .controls {
+      margin-top: 16px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    button {
+      border: none;
+      border-radius: 999px;
+      padding: 10px 16px;
+      cursor: pointer;
+      font-weight: 700;
+      background: #38bdf8;
+      color: #082f49;
+    }
+
+    button:hover {
+      filter: brightness(1.08);
+    }
+
+    .hint {
+      color: #cbd5e1;
+      font-size: 0.9rem;
+    }
+
+    .yay {
+      position: fixed;
+      left: 50%;
+      top: 20%;
+      transform: translate(-50%, -50%) scale(0);
+      font-size: 4rem;
+      font-weight: 900;
+      color: #facc15;
+      text-shadow: 0 6px 20px rgba(0, 0, 0, 0.45);
+      pointer-events: none;
+      opacity: 0;
+    }
+
+    .yay.show {
+      animation: pop 900ms ease-out forwards;
+    }
+
+    @keyframes pop {
+      0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+      20% { transform: translate(-50%, -50%) scale(1.25); opacity: 1; }
+      65% { transform: translate(-50%, -70%) scale(1); opacity: 1; }
+      100% { transform: translate(-50%, -95%) scale(0.85); opacity: 0; }
+    }
+
+    @media (max-width: 650px) {
+      .stats { grid-template-columns: 1fr; }
+      .yay { font-size: 3rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="game">
+    <h1>Writing XP Quest ✍️</h1>
+    <div class="subtitle">Write words. Gain XP. Every 100 XP gets a tiny celebration.</div>
+
+    <div class="stats">
+      <div class="stat">XP<strong id="xp">0</strong></div>
+      <div class="stat">Level<strong id="level">1</strong></div>
+      <div class="stat">Words<strong id="words">0</strong></div>
+    </div>
+
+    <div class="bar-wrap">
+      <div class="bar" id="bar"></div>
+    </div>
+
+    <textarea id="writing" placeholder="Start writing here..."></textarea>
+
+    <div class="controls">
+      <button id="save">Save Progress</button>
+      <button id="reset">Reset</button>
+      <span class="hint">XP = characters typed. Level up every 100 XP.</span>
+    </div>
+  </div>
+
+  <div class="yay" id="yay">YAY!</div>
+
+  <script>
+    const textarea = document.getElementById("writing");
+    const xpEl = document.getElementById("xp");
+    const levelEl = document.getElementById("level");
+    const wordsEl = document.getElementById("words");
+    const barEl = document.getElementById("bar");
+    const yayEl = document.getElementById("yay");
+    const saveBtn = document.getElementById("save");
+    const resetBtn = document.getElementById("reset");
+
+    let lastMilestone = 0;
+
+    function countWords(text) {
+      return text.trim().length === 0 ? 0 : text.trim().split(/\s+/).length;
+    }
+
+    function showYay() {
+      yayEl.classList.remove("show");
+      void yayEl.offsetWidth;
+      yayEl.classList.add("show");
+    }
+
+    function updateGame() {
+      const text = textarea.value;
+      const xp = text.length;
+      const level = Math.floor(xp / 100) + 1;
+      const progress = xp % 100;
+      const milestone = Math.floor(xp / 100);
+
+      xpEl.textContent = xp;
+      levelEl.textContent = level;
+      wordsEl.textContent = countWords(text);
+      barEl.style.width = progress + "%";
+
+      if (milestone > lastMilestone && xp > 0) {
+        showYay();
+      }
+
+      lastMilestone = milestone;
+    }
+
+    textarea.addEventListener("input", updateGame);
+
+    saveBtn.addEventListener("click", () => {
+      localStorage.setItem("writingXPText", textarea.value);
+      alert("Progress saved!");
+    });
+
+    resetBtn.addEventListener("click", () => {
+      if (confirm("Reset your writing and XP?")) {
+        textarea.value = "";
+        lastMilestone = 0;
+        localStorage.removeItem("writingXPText");
+        updateGame();
+      }
+    });
+
+    const saved = localStorage.getItem("writingXPText");
+    if (saved) {
+      textarea.value = saved;
+      lastMilestone = Math.floor(saved.length / 100);
+    }
+
+    updateGame();
+  </script>
+</body>
+</html>
